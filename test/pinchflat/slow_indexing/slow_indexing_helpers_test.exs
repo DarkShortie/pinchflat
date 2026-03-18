@@ -478,6 +478,26 @@ defmodule Pinchflat.SlowIndexing.SlowIndexingHelpersTest do
         {:ok, source_attributes_return_fixture()}
       end)
 
+      expect(YtDlpRunnerMock, :run, fn _url, :get_media_attributes_for_collection, _opts, _ot, _addl_opts ->
+        {:ok, source_attributes_return_fixture()}
+      end)
+
+      SlowIndexingHelpers.index_and_enqueue_download_for_media_items(source)
+    end
+
+    test "repeat indexing also checks the channel's shorts page when shorts are enabled" do
+      source = source_fixture(%{collection_type: :channel, last_indexed_at: now()})
+
+      expect(YtDlpRunnerMock, :run, fn url, :get_media_attributes_for_collection, _opts, _ot, _addl_opts ->
+        assert url == source.original_url
+        {:ok, source_attributes_return_fixture()}
+      end)
+
+      expect(YtDlpRunnerMock, :run, fn url, :get_media_attributes_for_collection, _opts, _ot, _addl_opts ->
+        assert url == "#{String.trim_trailing(source.original_url, "/")}/shorts"
+        {:ok, source_attributes_return_fixture()}
+      end)
+
       SlowIndexingHelpers.index_and_enqueue_download_for_media_items(source)
     end
 
@@ -535,6 +555,21 @@ defmodule Pinchflat.SlowIndexing.SlowIndexingHelpersTest do
 
         assert File.read!(archive_file) == "youtube #{last_media_item.media_id}"
 
+        {:ok, source_attributes_return_fixture()}
+      end)
+
+      expect(YtDlpRunnerMock, :run, fn _url, :get_media_attributes_for_collection, _opts, _ot, _addl_opts ->
+        {:ok, source_attributes_return_fixture()}
+      end)
+
+      SlowIndexingHelpers.index_and_enqueue_download_for_media_items(source)
+    end
+
+    test "repeat indexing does not check the shorts page when shorts are excluded" do
+      profile = media_profile_fixture(%{shorts_behaviour: :exclude})
+      source = source_fixture(%{collection_type: :channel, last_indexed_at: now(), media_profile_id: profile.id})
+
+      expect(YtDlpRunnerMock, :run, fn _url, :get_media_attributes_for_collection, _opts, _ot, _addl_opts ->
         {:ok, source_attributes_return_fixture()}
       end)
 
