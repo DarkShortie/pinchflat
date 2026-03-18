@@ -140,11 +140,38 @@ defmodule Pinchflat.SlowIndexing.SlowIndexingHelpers do
         build_download_archive_options(source, was_forced)
 
     runner_opts = [file_listener_handler: handler, use_cookies: should_use_cookies]
-    result = MediaCollection.get_media_attributes_for_collection(source.original_url, command_opts, runner_opts)
+    result =
+      source.original_url
+      |> MediaCollection.get_media_attributes_for_collection(command_opts, runner_opts)
+      |> maybe_index_shorts(source, command_opts, use_cookies: should_use_cookies)
 
     FileFollowerServer.stop(pid)
 
     result
+  end
+
+  defp maybe_index_shorts({:ok, media_attributes}, source, command_opts, runner_opts) do
+    if should_index_shorts?(source) do
+      shorts_url = source.original_url |> String.trim_trailing("/") |> Kernel.<>("/shorts")
+
+      case MediaCollection.get_media_attributes_for_collection(shorts_url, command_opts, runner_opts) do
+        {:ok, shorts_media_attributes} ->
+          {:ok, Enum.uniq_by(media_attributes ++ shorts_media_attributes, & &1.media_id)}
+
+        _ ->
+          {:ok, media_attributes}
+      end
+    else
+      {:ok, media_attributes}
+    end
+  end
+
+  defp maybe_index_shorts(err, _source, _command_opts, _runner_opts), do: err
+
+  defp should_index_shorts?(source) do
+    source.collection_type == :channel and
+      not is_nil(source.last_indexed_at) and
+      source.media_profile.shorts_behaviour != :exclude
   end
 
   defp setup_file_follower_watcher(pid, filepath, source) do
