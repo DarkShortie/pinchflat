@@ -153,8 +153,9 @@ defmodule Pinchflat.SlowIndexing.SlowIndexingHelpers do
   defp maybe_index_shorts({:ok, media_attributes}, source, command_opts, runner_opts) do
     if should_index_shorts?(source) do
       shorts_url = source.original_url |> String.trim_trailing("/") |> Kernel.<>("/shorts")
+      shorts_command_opts = strip_download_archive_options(command_opts)
 
-      case MediaCollection.get_media_attributes_for_collection(shorts_url, command_opts, runner_opts) do
+      case MediaCollection.get_media_attributes_for_collection(shorts_url, shorts_command_opts, runner_opts) do
         {:ok, shorts_media_attributes} ->
           {:ok, Enum.uniq_by(media_attributes ++ shorts_media_attributes, & &1.media_id)}
 
@@ -167,6 +168,12 @@ defmodule Pinchflat.SlowIndexing.SlowIndexingHelpers do
   end
 
   defp maybe_index_shorts(err, _source, _command_opts, _runner_opts), do: err
+
+  defp strip_download_archive_options(command_opts) do
+    command_opts
+    |> Keyword.delete(:download_archive)
+    |> List.delete(:break_on_existing)
+  end
 
   defp should_index_shorts?(source) do
     source.collection_type == :channel and
