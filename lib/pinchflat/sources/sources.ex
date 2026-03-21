@@ -10,6 +10,7 @@ defmodule Pinchflat.Sources do
   alias Pinchflat.Media
   alias Pinchflat.Tasks
   alias Pinchflat.Sources.Source
+  alias Pinchflat.Media.MediaItem
   alias Pinchflat.Profiles.MediaProfile
   alias Pinchflat.YtDlp.MediaCollection
   alias Pinchflat.Metadata.SourceMetadata
@@ -50,6 +51,40 @@ defmodule Pinchflat.Sources do
   """
   def list_sources do
     Repo.all(Source)
+  end
+
+  @doc """
+  Returns media export data grouped by source.
+
+  The export includes YouTube media IDs, a short/video type marker,
+  and a download status for each media item.
+  """
+  def export_media_ids_by_source do
+    media_items_query = from(mi in MediaItem, order_by: [asc: mi.id])
+
+    Source
+    |> order_by(asc: :id)
+    |> Repo.all()
+    |> Repo.preload(media_items: media_items_query)
+    |> Enum.map(fn source ->
+      %{
+        source: %{
+          id: source.id,
+          uuid: source.uuid,
+          custom_name: source.custom_name,
+          collection_id: source.collection_id,
+          collection_type: source.collection_type
+        },
+        media_items:
+          Enum.map(source.media_items, fn media_item ->
+            %{
+              media_id: media_item.media_id,
+              media_type: if(media_item.short_form_content, do: "short", else: "video"),
+              download_status: media_download_status(media_item)
+            }
+          end)
+      }
+    end)
   end
 
   @doc """
@@ -172,6 +207,18 @@ defmodule Pinchflat.Sources do
         changeset
     end
   end
+
+  defp media_download_status(%MediaItem{media_filepath: media_filepath}) when is_binary(media_filepath),
+    do: "downloaded"
+
+  defp media_download_status(%MediaItem{culled_at: culled_at}) when not is_nil(culled_at),
+    do: "culled"
+
+  defp media_download_status(%MediaItem{prevent_download: true}),
+    do: "prevented"
+
+  defp media_download_status(%MediaItem{}),
+    do: "pending"
 
   defp delete_source_files(source) do
     mapped_struct = Map.from_struct(source)
