@@ -488,13 +488,17 @@ defmodule Pinchflat.SlowIndexing.SlowIndexingHelpersTest do
     test "repeat indexing also checks the channel's shorts page when shorts are enabled" do
       source = source_fixture(%{collection_type: :channel, last_indexed_at: now()})
 
-      expect(YtDlpRunnerMock, :run, fn url, :get_media_attributes_for_collection, _opts, _ot, _addl_opts ->
+      expect(YtDlpRunnerMock, :run, fn url, :get_media_attributes_for_collection, opts, _ot, _addl_opts ->
         assert url == source.original_url
+        assert :break_on_existing in opts
+        assert Keyword.has_key?(opts, :download_archive)
         {:ok, source_attributes_return_fixture()}
       end)
 
-      expect(YtDlpRunnerMock, :run, fn url, :get_media_attributes_for_collection, _opts, _ot, _addl_opts ->
+      expect(YtDlpRunnerMock, :run, fn url, :get_media_attributes_for_collection, opts, _ot, _addl_opts ->
         assert url == "#{String.trim_trailing(source.original_url, "/")}/shorts"
+        refute :break_on_existing in opts
+        refute Keyword.has_key?(opts, :download_archive)
         {:ok, source_attributes_return_fixture()}
       end)
 
