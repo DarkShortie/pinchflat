@@ -58,6 +58,9 @@ defmodule Pinchflat.Sources do
 
   The export includes YouTube media IDs, a short/video type marker,
   and a download status for each media item.
+
+  Download status precedence is:
+  `culled` > `prevented` > `downloaded` > `pending`.
   """
   def export_media_ids_by_source do
     media_items_query = from(mi in MediaItem, order_by: [asc: mi.id])
@@ -208,14 +211,15 @@ defmodule Pinchflat.Sources do
     end
   end
 
-  defp media_download_status(%MediaItem{media_filepath: media_filepath}) when is_binary(media_filepath),
-    do: "downloaded"
-
   defp media_download_status(%MediaItem{culled_at: culled_at}) when not is_nil(culled_at),
     do: "culled"
 
   defp media_download_status(%MediaItem{prevent_download: true}),
     do: "prevented"
+
+  defp media_download_status(%MediaItem{media_filepath: media_filepath})
+       when is_binary(media_filepath) and media_filepath != "",
+    do: "downloaded"
 
   defp media_download_status(%MediaItem{}),
     do: "pending"
