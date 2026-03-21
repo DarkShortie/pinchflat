@@ -29,6 +29,14 @@ defmodule PinchflatWeb.SettingControllerTest do
 
       assert html_response(conn, 200) =~ "App Info"
     end
+
+    test "renders export media ids link", %{conn: conn} do
+      conn = get(conn, ~p"/app_info")
+      html = html_response(conn, 200)
+
+      assert html =~ "Export Media IDs"
+      assert html =~ "/api/exports/media_ids"
+    end
   end
 
   describe "download_logs" do
