@@ -48,6 +48,16 @@ defmodule PinchflatWeb.ExportControllerTest do
           prevent_download: false
         })
 
+      _prevented_even_if_downloaded =
+        media_item_fixture(%{
+          source_id: source.id,
+          media_id: "prevented222",
+          short_form_content: false,
+          media_filepath: "/video/already.mp4",
+          culled_at: nil,
+          prevent_download: true
+        })
+
       conn = get(conn, "/api/exports/media_ids")
       %{"sources" => [export_source | _]} = json_response(conn, 200)
 
@@ -73,6 +83,11 @@ defmodule PinchflatWeb.ExportControllerTest do
                %{
                  "download_status" => "culled",
                  "media_id" => "culled111",
+                 "media_type" => "video"
+               },
+               %{
+                 "download_status" => "prevented",
+                 "media_id" => "prevented222",
                  "media_type" => "video"
                }
              ]
