@@ -83,6 +83,14 @@ defmodule Pinchflat.Downloading.DownloadOptionBuilderTest do
       assert :write_subs in res
     end
 
+    test "includes :skip_unavailable_fragments when downloading subtitles", %{media_item: media_item} do
+      media_item = update_media_profile_attribute(media_item, %{download_subs: true})
+
+      assert {:ok, res} = DownloadOptionBuilder.build(media_item)
+
+      assert :skip_unavailable_fragments in res
+    end
+
     test "forces SRT format when download_subs is true", %{media_item: media_item} do
       media_item = update_media_profile_attribute(media_item, %{download_subs: true})
 
@@ -154,6 +162,15 @@ defmodule Pinchflat.Downloading.DownloadOptionBuilderTest do
       assert {:ok, res} = DownloadOptionBuilder.build(media_item)
 
       refute {:sub_langs, "en"} in res
+    end
+
+    test "doesn't include :skip_unavailable_fragments when neither downloading nor embedding", %{media_item: media_item} do
+      media_item =
+        update_media_profile_attribute(media_item, %{embed_subs: false, download_subs: false})
+
+      assert {:ok, res} = DownloadOptionBuilder.build(media_item)
+
+      refute :skip_unavailable_fragments in res
     end
   end
 

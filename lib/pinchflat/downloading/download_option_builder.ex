@@ -81,8 +81,10 @@ defmodule Pinchflat.Downloading.DownloadOptionBuilder do
 
   defp subtitle_options(media_profile) do
     mapped_struct = Map.from_struct(media_profile)
+    should_skip_unavailable_fragments = media_profile.download_subs || media_profile.embed_subs
+    initial_acc = if should_skip_unavailable_fragments, do: [:skip_unavailable_fragments], else: []
 
-    Enum.reduce(mapped_struct, [], fn attr, acc ->
+    Enum.reduce(mapped_struct, initial_acc, fn attr, acc ->
       case {attr, media_profile} do
         {{:download_subs, true}, _} ->
           # Force SRT for now - MAY provide as an option in the future
