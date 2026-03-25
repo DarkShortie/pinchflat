@@ -9,6 +9,8 @@ defmodule Pinchflat.Downloading.QualityOptionBuilder do
   alias Pinchflat.Settings
   alias Pinchflat.Profiles.MediaProfile
 
+  @ai_dubbed_format_note_filter "format_note~='(?i)dubbed'"
+
   @doc """
   Builds the quality-related options for yt-dlp to download media based on the given media profile
 
@@ -56,7 +58,10 @@ defmodule Pinchflat.Downloading.QualityOptionBuilder do
 
   defp build_format_string(%MediaProfile{audio_track: audio_track}) do
     if audio_track do
-      "bestvideo+bestaudio[#{build_format_modifier(audio_track)}]#{build_additional_ai_audio_modifier(audio_track)}/bestvideo*+bestaudio/best"
+      selected_audio = "bestvideo+bestaudio[#{build_format_modifier(audio_track)}]"
+      additional_ai_audio = build_additional_ai_audio_modifier(audio_track)
+
+      "#{selected_audio}#{additional_ai_audio}/bestvideo*+bestaudio/best"
     else
       "bestvideo*+bestaudio/best"
     end
@@ -72,7 +77,8 @@ defmodule Pinchflat.Downloading.QualityOptionBuilder do
   defp build_additional_ai_audio_modifier("default"), do: ""
 
   defp build_additional_ai_audio_modifier(language_code) do
-    "+bestaudio[language^=#{language_code}][format_note~='(?i)dubbed']/bestvideo+bestaudio[language^=#{language_code}]"
+    language_audio = "bestaudio[language^=#{language_code}]"
+    "+#{language_audio}[#{@ai_dubbed_format_note_filter}]/bestvideo+#{language_audio}"
   end
 
   # Reminder to self: this conflicts with `--extractor-args "youtube:lang=<LANG>"`
