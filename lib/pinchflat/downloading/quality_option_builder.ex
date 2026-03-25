@@ -9,7 +9,7 @@ defmodule Pinchflat.Downloading.QualityOptionBuilder do
   alias Pinchflat.Settings
   alias Pinchflat.Profiles.MediaProfile
 
-  @ai_dubbed_format_note_filter "format_note~='(?i)dubbed'"
+  @dubbed_audio_filter "format_note~='(?i)dubbed'"
 
   @doc """
   Builds the quality-related options for yt-dlp to download media based on the given media profile
@@ -32,20 +32,13 @@ defmodule Pinchflat.Downloading.QualityOptionBuilder do
     acodec = Settings.get!(:audio_codec_preference)
     {resolution_string, _} = resolution_atom |> Atom.to_string() |> Integer.parse()
 
-    maybe_audio_multistreams =
-      if add_ai_audio?(media_profile) do
-        [:audio_multistreams]
-      else
-        []
-      end
-
-    maybe_audio_multistreams ++
-      [
+    [
+      :audio_multistreams,
       # Since Plex doesn't support reading metadata from MKV
       remux_video: container || "mp4",
       format_sort: "res:#{resolution_string},+codec:#{vcodec}:#{acodec}",
       format: build_format_string(media_profile)
-      ]
+    ]
   end
 
   defp build_format_string(%MediaProfile{preferred_resolution: :audio, audio_track: audio_track}) do
@@ -57,28 +50,14 @@ defmodule Pinchflat.Downloading.QualityOptionBuilder do
   end
 
   defp build_format_string(%MediaProfile{audio_track: audio_track}) do
+    ai_audio = "+bestaudio[#{@dubbed_audio_filter}]"
+
     if audio_track do
       selected_audio = "bestvideo+bestaudio[#{build_format_modifier(audio_track)}]"
-      additional_ai_audio = build_additional_ai_audio_modifier(audio_track)
-
-      "#{selected_audio}#{additional_ai_audio}/bestvideo*+bestaudio/best"
+      "#{selected_audio}#{ai_audio}/#{selected_audio}/bestvideo*+bestaudio/best"
     else
-      "bestvideo*+bestaudio/best"
+      "bestvideo*+bestaudio#{ai_audio}/bestvideo*+bestaudio/best"
     end
-  end
-
-  defp add_ai_audio?(%MediaProfile{preferred_resolution: :audio}), do: false
-  defp add_ai_audio?(%MediaProfile{audio_track: nil}), do: false
-  defp add_ai_audio?(%MediaProfile{audio_track: "original"}), do: false
-  defp add_ai_audio?(%MediaProfile{audio_track: "default"}), do: false
-  defp add_ai_audio?(%MediaProfile{}), do: true
-
-  defp build_additional_ai_audio_modifier("original"), do: ""
-  defp build_additional_ai_audio_modifier("default"), do: ""
-
-  defp build_additional_ai_audio_modifier(language_code) do
-    language_audio = "bestaudio[language^=#{language_code}]"
-    "+#{language_audio}[#{@ai_dubbed_format_note_filter}]/bestvideo+#{language_audio}"
   end
 
   # Reminder to self: this conflicts with `--extractor-args "youtube:lang=<LANG>"`

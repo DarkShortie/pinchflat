@@ -9,18 +9,24 @@ defmodule Pinchflat.Downloading.QualityOptionBuilderTest do
   describe "build/1" do
     test "includes format options if audio_track is set to original" do
       media_profile = media_profile_fixture(%{audio_track: "original"})
+      expected_format =
+        "bestvideo+bestaudio[format_note*=original]+bestaudio[format_note~='(?i)dubbed']/bestvideo+bestaudio[format_note*=original]/bestvideo*+bestaudio/best"
 
       assert res = QualityOptionBuilder.build(media_profile)
 
-      assert {:format, "bestvideo+bestaudio[format_note*=original]/bestvideo*+bestaudio/best"} in res
+      assert {:audio_multistreams} in res
+      assert {:format, expected_format} in res
     end
 
     test "includes format options if audio_track is set to default" do
       media_profile = media_profile_fixture(%{audio_track: "default"})
+      expected_format =
+        "bestvideo+bestaudio[format_note*='(default)']+bestaudio[format_note~='(?i)dubbed']/bestvideo+bestaudio[format_note*='(default)']/bestvideo*+bestaudio/best"
 
       assert res = QualityOptionBuilder.build(media_profile)
 
-      assert {:format, "bestvideo+bestaudio[format_note*='(default)']/bestvideo*+bestaudio/best"} in res
+      assert {:audio_multistreams} in res
+      assert {:format, expected_format} in res
     end
 
     test "includes format options if audio_track is set to a language code" do
@@ -31,7 +37,7 @@ defmodule Pinchflat.Downloading.QualityOptionBuilderTest do
       assert {:audio_multistreams} in res
 
       assert {:format,
-              "bestvideo+bestaudio[language^=en]+bestaudio[language^=en][format_note~='(?i)dubbed']/bestvideo+bestaudio[language^=en]/bestvideo*+bestaudio/best"} in res
+              "bestvideo+bestaudio[language^=en]+bestaudio[format_note~='(?i)dubbed']/bestvideo+bestaudio[language^=en]/bestvideo*+bestaudio/best"} in res
     end
   end
 
@@ -115,16 +121,23 @@ defmodule Pinchflat.Downloading.QualityOptionBuilderTest do
     test "includes custom format options", %{media_profile: media_profile} do
       assert res = QualityOptionBuilder.build(media_profile)
 
-      assert {:format, "bestvideo*+bestaudio/best"} in res
+      assert {:audio_multistreams} in res
+      assert {:format, "bestvideo*+bestaudio+bestaudio[format_note~='(?i)dubbed']/bestvideo*+bestaudio/best"} in res
     end
 
-    test "does not include multistreams if audio_track is original", %{media_profile: media_profile} do
+    test "includes AI multistreams when audio_track is not set", %{media_profile: media_profile} do
+      assert res = QualityOptionBuilder.build(media_profile)
+
+      assert {:audio_multistreams} in res
+    end
+
+    test "includes AI multistreams if audio_track is original", %{media_profile: media_profile} do
       {:ok, media_profile} = Profiles.update_media_profile(media_profile, %{audio_track: "original"})
 
       assert res = QualityOptionBuilder.build(media_profile)
 
-      refute {:audio_multistreams} in res
-      assert {:format, "bestvideo+bestaudio[format_note*=original]/bestvideo*+bestaudio/best"} in res
+      assert {:audio_multistreams} in res
+      assert {:format, "bestvideo+bestaudio[format_note*=original]+bestaudio[format_note~='(?i)dubbed']/bestvideo+bestaudio[format_note*=original]/bestvideo*+bestaudio/best"} in res
     end
   end
 end
