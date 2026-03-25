@@ -28,7 +28,10 @@ defmodule Pinchflat.Downloading.QualityOptionBuilderTest do
 
       assert res = QualityOptionBuilder.build(media_profile)
 
-      assert {:format, "bestvideo+bestaudio[language^=en]/bestvideo*+bestaudio/best"} in res
+      assert {:audio_multistreams} in res
+
+      assert {:format,
+              "bestvideo+bestaudio[language^=en]+bestaudio[language^=en][format_note~='(?i)dubbed']/bestvideo+bestaudio[language^=en]/bestvideo*+bestaudio/best"} in res
     end
   end
 
@@ -59,6 +62,15 @@ defmodule Pinchflat.Downloading.QualityOptionBuilderTest do
       assert res = QualityOptionBuilder.build(media_profile)
 
       assert {:format, "bestaudio/best"} in res
+    end
+
+    test "does not include multistreams for audio-only profiles with language code" do
+      media_profile = media_profile_fixture(%{preferred_resolution: :audio, audio_track: "en"})
+
+      assert res = QualityOptionBuilder.build(media_profile)
+
+      refute {:audio_multistreams} in res
+      assert {:format, "bestaudio[language^=en]/bestaudio/best"} in res
     end
   end
 
@@ -104,6 +116,15 @@ defmodule Pinchflat.Downloading.QualityOptionBuilderTest do
       assert res = QualityOptionBuilder.build(media_profile)
 
       assert {:format, "bestvideo*+bestaudio/best"} in res
+    end
+
+    test "does not include multistreams if audio_track is original", %{media_profile: media_profile} do
+      {:ok, media_profile} = Profiles.update_media_profile(media_profile, %{audio_track: "original"})
+
+      assert res = QualityOptionBuilder.build(media_profile)
+
+      refute {:audio_multistreams} in res
+      assert {:format, "bestvideo+bestaudio[format_note*=original]/bestvideo*+bestaudio/best"} in res
     end
   end
 end

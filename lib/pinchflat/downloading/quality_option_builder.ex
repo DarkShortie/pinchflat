@@ -30,12 +30,20 @@ defmodule Pinchflat.Downloading.QualityOptionBuilder do
     acodec = Settings.get!(:audio_codec_preference)
     {resolution_string, _} = resolution_atom |> Atom.to_string() |> Integer.parse()
 
-    [
+    maybe_audio_multistreams =
+      if add_ai_audio?(media_profile) do
+        [:audio_multistreams]
+      else
+        []
+      end
+
+    maybe_audio_multistreams ++
+      [
       # Since Plex doesn't support reading metadata from MKV
       remux_video: container || "mp4",
       format_sort: "res:#{resolution_string},+codec:#{vcodec}:#{acodec}",
       format: build_format_string(media_profile)
-    ]
+      ]
   end
 
   defp build_format_string(%MediaProfile{preferred_resolution: :audio, audio_track: audio_track}) do
@@ -48,10 +56,23 @@ defmodule Pinchflat.Downloading.QualityOptionBuilder do
 
   defp build_format_string(%MediaProfile{audio_track: audio_track}) do
     if audio_track do
-      "bestvideo+bestaudio[#{build_format_modifier(audio_track)}]/bestvideo*+bestaudio/best"
+      "bestvideo+bestaudio[#{build_format_modifier(audio_track)}]#{build_additional_ai_audio_modifier(audio_track)}/bestvideo*+bestaudio/best"
     else
       "bestvideo*+bestaudio/best"
     end
+  end
+
+  defp add_ai_audio?(%MediaProfile{preferred_resolution: :audio}), do: false
+  defp add_ai_audio?(%MediaProfile{audio_track: nil}), do: false
+  defp add_ai_audio?(%MediaProfile{audio_track: "original"}), do: false
+  defp add_ai_audio?(%MediaProfile{audio_track: "default"}), do: false
+  defp add_ai_audio?(%MediaProfile{}), do: true
+
+  defp build_additional_ai_audio_modifier("original"), do: ""
+  defp build_additional_ai_audio_modifier("default"), do: ""
+
+  defp build_additional_ai_audio_modifier(language_code) do
+    "+bestaudio[language^=#{language_code}][format_note~='(?i)dubbed']/bestvideo+bestaudio[language^=#{language_code}]"
   end
 
   # Reminder to self: this conflicts with `--extractor-args "youtube:lang=<LANG>"`
