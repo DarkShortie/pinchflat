@@ -143,7 +143,7 @@ defmodule Pinchflat.SlowIndexing.SlowIndexingHelpers do
     result =
       source.original_url
       |> MediaCollection.get_media_attributes_for_collection(command_opts, runner_opts)
-      |> maybe_index_shorts(source, command_opts, use_cookies: should_use_cookies)
+      |> maybe_index_shorts(source, command_opts, runner_opts)
 
     FileFollowerServer.stop(pid)
 

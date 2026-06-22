@@ -505,6 +505,27 @@ defmodule Pinchflat.SlowIndexing.SlowIndexingHelpersTest do
       SlowIndexingHelpers.index_and_enqueue_download_for_media_items(source)
     end
 
+    test "repeat indexing uses the file watcher for the channel's shorts page" do
+      watcher_poll_interval = Application.get_env(:pinchflat, :file_watcher_poll_interval)
+      source = source_fixture(%{collection_type: :channel, last_indexed_at: now()})
+
+      expect(YtDlpRunnerMock, :run, fn _url, :get_media_attributes_for_collection, _opts, _ot, _addl_opts ->
+        {:ok, ""}
+      end)
+
+      expect(YtDlpRunnerMock, :run, fn _url, :get_media_attributes_for_collection, _opts, _ot, addl_opts ->
+        filepath = Keyword.get(addl_opts, :output_filepath)
+        File.write(filepath, source_attributes_return_fixture())
+        :timer.sleep(watcher_poll_interval * 2)
+
+        {:ok, ""}
+      end)
+
+      SlowIndexingHelpers.index_and_enqueue_download_for_media_items(source)
+
+      assert Repo.aggregate(MediaItem, :count, :id) == 3
+    end
+
     test "a download archive is not used if the source is not a channel" do
       source = source_fixture(%{collection_type: :playlist})
 
