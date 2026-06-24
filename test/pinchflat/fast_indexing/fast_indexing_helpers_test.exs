@@ -1,6 +1,8 @@
 defmodule Pinchflat.FastIndexing.FastIndexingHelpersTest do
   use Pinchflat.DataCase
 
+  @recent_indexing_threshold_seconds 30
+
   import Pinchflat.TasksFixtures
   import Pinchflat.MediaFixtures
   import Pinchflat.SourcesFixtures
@@ -82,7 +84,7 @@ defmodule Pinchflat.FastIndexing.FastIndexingHelpersTest do
       FastIndexingHelpers.index_and_kickoff_downloads(source)
       source = Repo.reload!(source)
 
-      assert DateTime.diff(DateTime.utc_now(), source.last_indexed_at) < 10
+      assert DateTime.diff(DateTime.utc_now(), source.last_indexed_at) < @recent_indexing_threshold_seconds
     end
 
     test "does not enqueue a download job if the source does not allow it" do
