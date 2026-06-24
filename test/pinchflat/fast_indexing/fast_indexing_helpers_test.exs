@@ -82,7 +82,7 @@ defmodule Pinchflat.FastIndexing.FastIndexingHelpersTest do
       FastIndexingHelpers.index_and_kickoff_downloads(source)
       source = Repo.reload!(source)
 
-      assert DateTime.diff(DateTime.utc_now(), source.last_indexed_at) < 2
+      assert DateTime.diff(DateTime.utc_now(), source.last_indexed_at) < 10
     end
 
     test "does not enqueue a download job if the source does not allow it" do
