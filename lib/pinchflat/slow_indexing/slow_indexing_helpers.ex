@@ -108,14 +108,7 @@ defmodule Pinchflat.SlowIndexing.SlowIndexingHelpers do
         end
       end)
 
-    case Sources.update_last_indexed_at(source) do
-      {:ok, _source} ->
-        :ok
-
-      {:error, changeset} ->
-        Logger.warning("Unable to update source last_indexed_at: #{inspect(changeset.errors)}")
-        :ok
-    end
+    Sources.maybe_update_last_indexed_at(source)
     DownloadingHelpers.enqueue_pending_download_tasks(source)
 
     result

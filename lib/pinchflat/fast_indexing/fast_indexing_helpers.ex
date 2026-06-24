@@ -66,7 +66,7 @@ defmodule Pinchflat.FastIndexing.FastIndexingHelpers do
     # Pick up any stragglers. Intentionally has a lower priority than the per-media item
     # kickoff above
     DownloadingHelpers.enqueue_pending_download_tasks(source, priority: 1)
-    maybe_update_last_indexed_at(source)
+    Sources.maybe_update_last_indexed_at(source)
 
     Enum.filter(maybe_new_media_items, & &1)
   end
@@ -105,17 +105,6 @@ defmodule Pinchflat.FastIndexing.FastIndexingHelpers do
 
       err ->
         err
-    end
-  end
-
-  defp maybe_update_last_indexed_at(source) do
-    case Sources.update_last_indexed_at(source) do
-      {:ok, _source} ->
-        :ok
-
-      {:error, changeset} ->
-        Logger.warning("Unable to update source last_indexed_at: #{inspect(changeset.errors)}")
-        :ok
     end
   end
 end

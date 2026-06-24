@@ -5,6 +5,7 @@ defmodule Pinchflat.Sources do
 
   import Ecto.Query, warn: false
   use Pinchflat.Media.MediaQuery
+  require Logger
 
   alias Pinchflat.Repo
   alias Pinchflat.Media
@@ -111,10 +112,28 @@ defmodule Pinchflat.Sources do
 
   Returns {:ok, %Source{}} | {:error, %Ecto.Changeset{}}
   """
+  @spec update_last_indexed_at(Source.t(), DateTime.t()) :: {:ok, Source.t()} | {:error, Ecto.Changeset.t()}
   def update_last_indexed_at(%Source{} = source, datetime \\ DateTime.utc_now()) do
     source
     |> Ecto.Changeset.change(last_indexed_at: datetime)
     |> Repo.update()
+  end
+
+  @doc """
+  Attempts to update only the `last_indexed_at` timestamp for a source and logs warning on failure.
+
+  Returns :ok
+  """
+  @spec maybe_update_last_indexed_at(Source.t(), DateTime.t()) :: :ok
+  def maybe_update_last_indexed_at(%Source{} = source, datetime \\ DateTime.utc_now()) do
+    case update_last_indexed_at(source, datetime) do
+      {:ok, _source} ->
+        :ok
+
+      {:error, changeset} ->
+        Logger.warning("Unable to update last_indexed_at for source #{source.id}: #{inspect(changeset.errors)}")
+        :ok
+    end
   end
 
   @doc """
