@@ -107,6 +107,17 @@ defmodule Pinchflat.Sources do
   def get_source!(id), do: Repo.get!(Source, id)
 
   @doc """
+  Updates only the `last_indexed_at` timestamp for a source.
+
+  Returns {:ok, %Source{}} | {:error, %Ecto.Changeset{}}
+  """
+  def update_last_indexed_at(%Source{} = source, datetime \\ DateTime.utc_now()) do
+    source
+    |> Ecto.Changeset.change(last_indexed_at: datetime)
+    |> Repo.update()
+  end
+
+  @doc """
   Creates a source. May attempt to pull additional source details from the
   original_url (if provided). Will attempt to start indexing the source's
   media if successfully inserted.

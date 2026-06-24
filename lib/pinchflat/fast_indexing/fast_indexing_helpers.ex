@@ -109,7 +109,7 @@ defmodule Pinchflat.FastIndexing.FastIndexingHelpers do
   end
 
   defp maybe_update_last_indexed_at(source) do
-    case Sources.update_source(source, %{last_indexed_at: DateTime.utc_now()}) do
+    case Sources.update_last_indexed_at(source) do
       {:ok, _source} ->
         :ok
 
