@@ -66,6 +66,7 @@ defmodule Pinchflat.FastIndexing.FastIndexingHelpers do
     # Pick up any stragglers. Intentionally has a lower priority than the per-media item
     # kickoff above
     DownloadingHelpers.enqueue_pending_download_tasks(source, priority: 1)
+    Sources.update_source(source, %{last_indexed_at: DateTime.utc_now()})
 
     Enum.filter(maybe_new_media_items, & &1)
   end

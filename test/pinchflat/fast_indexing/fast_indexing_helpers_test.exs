@@ -75,6 +75,16 @@ defmodule Pinchflat.FastIndexing.FastIndexingHelpersTest do
       assert [%MediaItem{}] = FastIndexingHelpers.index_and_kickoff_downloads(source)
     end
 
+    test "updates the source's last_indexed_at field", %{source: source} do
+      expect(HTTPClientMock, :get, fn _url -> {:ok, "<yt:videoId>test_1</yt:videoId>"} end)
+      assert source.last_indexed_at == nil
+
+      FastIndexingHelpers.index_and_kickoff_downloads(source)
+      source = Repo.reload!(source)
+
+      assert DateTime.diff(DateTime.utc_now(), source.last_indexed_at) < 2
+    end
+
     test "does not enqueue a download job if the source does not allow it" do
       expect(HTTPClientMock, :get, fn _url -> {:ok, "<yt:videoId>test_1</yt:videoId>"} end)
       source = source_fixture(%{download_media: false})
