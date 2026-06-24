@@ -115,6 +115,7 @@ defmodule Pinchflat.FastIndexing.FastIndexingHelpers do
 
       {:error, changeset} ->
         Logger.warning("Unable to update source last_indexed_at: #{inspect(changeset.errors)}")
+        :ok
     end
   end
 end
