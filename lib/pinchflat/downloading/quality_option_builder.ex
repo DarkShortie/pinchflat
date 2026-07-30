@@ -9,6 +9,8 @@ defmodule Pinchflat.Downloading.QualityOptionBuilder do
   alias Pinchflat.Settings
   alias Pinchflat.Profiles.MediaProfile
 
+  @dubbed_audio_filter "format_note~='(?i)dubbed'"
+
   @doc """
   Builds the quality-related options for yt-dlp to download media based on the given media profile
 
@@ -31,6 +33,7 @@ defmodule Pinchflat.Downloading.QualityOptionBuilder do
     {resolution_string, _} = resolution_atom |> Atom.to_string() |> Integer.parse()
 
     [
+      :audio_multistreams,
       # Since Plex doesn't support reading metadata from MKV
       remux_video: container || "mp4",
       format_sort: "res:#{resolution_string},+codec:#{vcodec}:#{acodec}",
@@ -47,10 +50,13 @@ defmodule Pinchflat.Downloading.QualityOptionBuilder do
   end
 
   defp build_format_string(%MediaProfile{audio_track: audio_track}) do
+    ai_audio = "+bestaudio[#{@dubbed_audio_filter}]"
+
     if audio_track do
-      "bestvideo+bestaudio[#{build_format_modifier(audio_track)}]/bestvideo*+bestaudio/best"
+      selected_audio = "bestvideo+bestaudio[#{build_format_modifier(audio_track)}]"
+      "#{selected_audio}#{ai_audio}/#{selected_audio}/bestvideo*+bestaudio/best"
     else
-      "bestvideo*+bestaudio/best"
+      "bestvideo*+bestaudio#{ai_audio}/bestvideo*+bestaudio/best"
     end
   end
 
